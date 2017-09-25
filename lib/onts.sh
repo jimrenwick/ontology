@@ -11,7 +11,7 @@ function gio_client {
     echo 1>&2 "> gio_client <clientname> <reponame>"
     return
   fi
-  export MODCLEINT=1
+  export MODCLIENT=1
   echo "GERRITIO_CLIENT($1, $2)" >> $ENVS/$ONTOLOGY_ROOT.m4
   rebuild_pick
   pick $1
