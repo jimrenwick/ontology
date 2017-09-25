@@ -104,6 +104,7 @@ function _ontg_change {
   $finalizer
   return 0
 }
+
 function _ontg_change_tab_completion {
   echo "--oops -f"
   return 0
@@ -117,6 +118,36 @@ function _ontg_review {
   local branch=$(git rev-parse --abbrev-ref HEAD)
   git push origin HEAD:refs/for/$GIT_WORKING_BRANCH%topic=$branch "$@"
   return 0
+}
+
+function _ontg_switch {
+  if [[ $# -lt 1 ]]; then
+    echo 1>&2 '! Need to provide a topic name, one of:' \
+              "'"$(ont__join -d "', '" $(_ontg_done_tab_completion))"'"
+    return 1
+  fi
+  git checkout $@
+  return 0
+}
+
+function _ontg_switch_tab_completion {
+  _ontg_done_tab_completion
+}
+
+function _ontg_done {
+  if [[ $# -lt 1 ]]; then
+    echo 1>&2 '! Need to provide a topic name, one of:' \
+              "'"$(ont__join -d "', '" $(_ontg_done_tab_completion))"'"
+    return 1
+  fi
+  git checkout $GIT_WORKING_BRANCH
+  git pull
+  git branch -d $1
+  return 0
+}
+
+function _ontg_done_tab_completion {
+  git branch -v | sed 's/^..//' | awk '{print $1}'
 }
 
 function ontg {
