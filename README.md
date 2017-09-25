@@ -15,7 +15,6 @@ export ONTOLOGY_HOME=$HOME/ontology-src
 export GERRITIO_USER=$USER
 export ONTOLOGY_ROOT=some-root
 export ENVS=$ONTOLOGY_HOME/onts
-alias g5=ontg
 function reload_ont {
   source $ONTOLOGY_HOME/lib/git-env.sh
   source $ONTOLOGY_HOME/lib/onts.sh
@@ -23,11 +22,9 @@ function reload_ont {
 reload_ont
 ```
 
-Add a file to $ENVS that has your NS() definitions in it.
-
-Use gio_client to build a new git client definition.
-
-pick <new client>
+- Add a file to $ENVS that has your NS() definitions in it.
+- Use gio_client to build a new git client definition.
+- pick <new client>
 
 
 
