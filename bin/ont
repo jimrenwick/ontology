@@ -1,0 +1,157 @@
+#!/bin/bash
+
+source $ONTOLOGY_HOME/lib/internal.sh
+
+declare -a ARGV=($@)
+declare force debug pretend clear
+
+function parse_args {
+  local args=$(
+    getopt -l "pretend" -l debug -l force -l clear -o "pDfc" -- "$@")
+  eval set -- "$args"
+  while [[ $# -ge 1 ]]; do
+    case "$1" in
+      --) shift; break;;
+      -f|--force) force=true;;
+      -D|--debug) debug=true;;
+      -p|--pretend) pretend=true;;
+      -c|--clear) clear=true;;
+    esac
+    shift
+  done
+  ARGV=($@)
+}
+
+function chooser {
+  local -a all_vars=($@)
+  local -a found_on_cmd_line=()
+  local arg
+  local var
+  for arg in ${ARGV[@]}; do
+    for var in ${all_vars[@]}; do
+      local n=${var##*/}  # Same as basename
+      n=${n%%.sh}
+      if [[ $arg = $n ]]; then
+        found_on_cmd_line+=($n $var)
+        break
+      fi
+    done
+  done
+  if [[ "${found_on_cmd_line[@]}" ]]; then
+    echo ${found_on_cmd_line[@]}
+    return 0
+  fi
+
+  # prompt for missing info
+  for (( i=0; i<${#all_vars[@]}; i++ )); do
+    echo "$i) "$(basename ${all_vars[$i]} .sh) 1>&2
+  done
+  echo -n "Pick one: " 1>&2
+  read choice
+  echo "$(basename ${all_vars[$choice]} .sh) ${all_vars[$choice]}"
+}
+
+function main {
+  parse_args "$@"
+
+  ont__require ENVS || ont__error "Failing!";
+
+  local -a everything=()
+  local path env namespace purpose
+  if [[ -z "$CHOSEN_ENV" || $force ]]; then
+    everything=($(chooser $ENVS/*.sh))
+    path=${everything[1]}
+    env=${everything[0]}
+    ont__warn "You picked env: $env : $path"
+    unset __HOOKS_LOADED
+  else
+    env=$CHOSEN_ENV
+    path=$CHOSEN_ENV_PATH
+  fi
+
+  if [[ -z "$CHOSEN_NAMESPACE" || $force ]]; then
+    local namespaces=$(grep "${env}_NAMESPACES" $path)
+    eval "$(echo $namespaces)"
+    local all_env_namespaces="$(eval echo "\$$(echo "${env}_NAMESPACES")")"
+    namespaces=($(chooser $all_env_namespaces))
+    namespace=${namespaces[0]}
+    ont__warn "Using namespace: $namespace"
+  else
+    namespace="$CHOSEN_NAMESPACE"
+    ont__warn "Pulled namespace from global $CHOSEN_NAMESPACE"
+  fi
+
+  if [[ -n "$clear" ]]; then
+    echo unset ONTOLOGY
+    echo unset CHOSEN_ENV
+    echo unset CHOSEN_ENV_PATH
+    echo unset CHOSEN_NAMESPACE
+    echo unset __HOOKS_LOADED
+    grep ^GBL_ $path |
+      perl -ple 's/\$\{*(\w+)\}*/$ENV{$1}/g' |
+      sed -e 's/^GBL_//; s/^/unset /' |
+      perl -ple 's/=.+$//'
+    grep ^${namespace}_ $path |
+      perl -ple 's/\$\{*(\w+)\}*/$ENV{$1}/g' |
+      sed -e "s/^${namespace}_//; s/^/unset /" |
+      perl -ple 's/=.+$//'
+    purpose=unset
+  else
+    echo "export ONTOLOGY=$namespace/$env ;"
+    echo "export CHOSEN_ENV=$env ;"
+    echo "export CHOSEN_ENV_PATH=$path ;"
+    echo "export CHOSEN_NAMESPACE=$namespace ;"
+    for var in GBL_ ${namespace}_; do
+      egrep ^${var}'[A-Za-z0-9]+=' $path |
+        perl -ple 's/\$\{*(\w+)\}*/$ENV{$1}/g' |
+        sed -e "s/^${var}//; s/^/export /; s/$/ ;/"
+    done
+
+    # load hooks
+    if [[ -n "$changed" || -z "$__HOOKS_LOADED" ]]; then
+      local hooks=$(grep ^${var}hook $path | perl -ple 's/.+?=//g')
+      local main=$(grep ^${var}main $path | perl -ple 's/.+?=//g')
+      for hook in $hooks; do
+        if [[ $hook =~ ^/ || $hook =~ ^\$ ]]; then
+          echo "export HOOKCMD='test -f $hook && source $hook' ;"
+        else
+          echo "export HOOKCMD='test -f $main/$hook && source $main/$hook && \
+                  test -f $TOP/$hook && source $TOP/$hook' ; "
+        fi
+        echo " export __HOOKS_LOADED=1 ;"
+      done
+    fi
+    purpose=export
+  fi
+  for a in ${ARGV[@]}; do
+    if [[ "$a" = "$env" || $a = $namespace ]]; then
+        continue
+    fi
+    if [[ $a =~ "=" ]]; then
+      echo "$purpose $a"
+    else
+      cmds="$cmds $a"
+      fi
+  done
+
+  echo "$cmds"
+
+  # Reload history
+  hist_vars=$(
+    grep ^${var}HIST $path |
+      perl -ple "s/^$var//")
+  if [[ "$hist_vars" ]]; then
+    for h in $hist_vars; do
+      echo "export $h ;"
+    done
+    if [[ -z "$MODCLIENT" ]]; then
+      echo "exec bash -l"
+    fi
+  fi
+}
+
+main "$@"
+
+# Local Variables:
+# sh-mode
+# End
