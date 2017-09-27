@@ -31,11 +31,12 @@ export GIT_WORKING_BRANCH=${GIT_WORKING_BRANCH:-master}
 export GIT_RELEASE_BRANCH=${GIT_RELEASE_BRANCH:-release}
 export ONT_GIT=https://review.gerrithub.io/#/$GIT_PROJECT_NAME
 
-export ONTG_COMMANDS=(
-  $(grep 'function _ontg_' $ONT_ENV |
-       grep -v ONT_ENV |
-       perl -ple 's/.+ontg_(.+?)\s.*/$1/' |
-       grep -v _tab_completion))
+export ONTG_COMMANDS=$(
+  grep 'function _ontg_' $ONT_ENV |
+    grep -v ONT_ENV |
+    perl -ple 's/.+ontg_(.+?)\s.*/$1/' |
+    grep -v _tab_completion)
+
 
 function _ontg_sync {
   if [[ $# -lt 1 ]]; then
@@ -169,12 +170,12 @@ function _ontg_ls {
 }
 
 function _ontg_completions {
-  local commands="list ${ONTG_COMMANDS[@]}"
+  local commands="list $ONTG_COMMANDS"
   local curw=${COMP_WORDS[COMP_CWORD]}
   local lastw=${COMP_WORDS[COMP_CWORD - 1]}
   if [[ $lastw = "ontg" || $lastw = "g5" ]]; then
     COMPREPLY=($(compgen -W "$commands" -- $curw))
-  elif $(ont__in $lastw ${ONTG_COMMANDS[@]}); then
+  elif $(ont__in $lastw $ONTG_COMMANDS); then
     fn=$(echo _ontg_${lastw}_tab_completion)
     if $(type $fn 2>/dev/null | grep -q 'is a function'); then
       COMPREPLY=($(compgen -W "$(eval $fn)" -- $curw))
