@@ -27,18 +27,13 @@ reload_ont
 - pick <new client>
 
 
-
 ## TODO
 
 - Still need to write an installer.
 
-## single roots
+## Background
 
-At some point during unix's life, someone decided that child
-environments inherit from parents, but the reverse isn't true. The
-parent has to explicitly eval the child state to get it.
-
-The idea behind ontology is that most of the work we do looks the same
+The idea behind ontology is that most command line work looks the same,
 in that there is an editor for source code, some kind of build rules,
 some kind of source control, some series of deployment targets/process
 and some kind of tests. The tools that implement all of those things

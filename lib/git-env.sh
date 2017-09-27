@@ -4,7 +4,10 @@
 source $ONTOLOGY_HOME/lib/internal.sh
 
 function _ontg_update_env {
-  local _commit_msg=.git/hooks/commit-msg
+  if [[ ! $main ]]; then
+    return 1
+  fi
+  local _commit_msg=$main/.git/hooks/commit-msg
   if [[ ! -f $_commit_msg ]]; then
     echo 1>&2 'Loading Gerrit commit hook...'
     curl -Lo $_commit_msg \
