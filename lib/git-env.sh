@@ -173,7 +173,7 @@ function _ontg_completions {
   local commands="list $ONTG_COMMANDS"
   local curw=${COMP_WORDS[COMP_CWORD]}
   local lastw=${COMP_WORDS[COMP_CWORD - 1]}
-  if [[ $lastw = "ontg" || $lastw = "g5" ]]; then
+  if [[ $lastw = "ontg" || $lastw = "og" ]]; then
     COMPREPLY=($(compgen -W "$commands" -- $curw))
   elif $(ont__in $lastw $ONTG_COMMANDS); then
     fn=$(echo _ontg_${lastw}_tab_completion)
@@ -187,4 +187,4 @@ function _ontg_completions {
   fi
   return 0
 }
-complete -o bashdefault -F _ontg_completions ontg g5
+complete -o bashdefault -F _ontg_completions ontg og
